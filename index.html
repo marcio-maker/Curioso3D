@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MONO - Eye Curious Modal Zero JS</title>
+    <style>
+        :root {
+            --eye-size: 220px; --iris-size: 125px; --pupil-size: 50px; --gap: 30px; --bg: #000;
+        }
+
+        @media (max-width: 480px) {
+            :root { --eye-size: 100px; --iris-size: 55px; --pupil-size: 24px; --gap: 15px; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; perspective: 1000px; }
+
+        /* Esconder o checkbox que controla o modal */
+        #modal-engine { display: none; }
+
+        /* Sensores de movimento */
+        .eye-track-grid { position: absolute; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); z-index: 5; }
+        .sensor { width: 100%; height: 100%; }
+
+        /* O Label agora envolve os olhos para que o clique neles ative o checkbox */
+        .eye-trigger { cursor: pointer; z-index: 10; display: flex; gap: var(--gap); }
+
+        .liquid-object {
+            position: relative; width: var(--eye-size); height: var(--eye-size);
+            display: flex; justify-content: center; align-items: center;
+            border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff 0%, #d1d1d1 40%, #888 100%);
+            box-shadow: inset -5px -5px 20px rgba(0,0,0,0.4), 0 10px 30px rgba(0,0,0,0.6);
+            transform-style: preserve-3d; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: blink 7s infinite;
+        }
+
+        /* Hover fechar */
+        .eye-trigger:hover .liquid-object { transform: scaleY(0.02) scaleX(1.1); filter: blur(2px); opacity: 0.6; animation: none; }
+
+        .liquid-object span { position: absolute; border-radius: 50%; transition: transform 0.3s ease-out; }
+
+        /* span 1: Íris */
+        .liquid-object span:nth-child(1) { 
+            width: var(--iris-size); height: var(--iris-size);
+            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.4) 100%), conic-gradient(from 0deg, #111, #333, #111, #444, #111, #333, #111);
+            z-index: 1; border: 1px solid rgba(0,0,0,0.3); animation: iris-sync 10s infinite ease-in-out;
+        }
+
+        /* span 2: Pupila */
+        .liquid-object span:nth-child(2) { 
+            width: var(--pupil-size); height: var(--pupil-size); background: #000; z-index: 2;
+            box-shadow: 0 0 10px rgba(0,0,0,0.8); animation: pupil-autonomous 10s infinite ease-in-out;
+        }
+
+        /* span 3: Reflexo */
+        .liquid-object span:nth-child(3) { 
+            width: calc(var(--eye-size) / 3.5); height: calc(var(--eye-size) / 6);
+            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 80%);
+            top: 18%; left: 22%; filter: blur(1px); z-index: 5;
+        }
+
+        /* --- MODAL E CARD --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); backdrop-filter: blur(15px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: 0.5s ease;
+        }
+
+        .card {
+            background: #111; color: white; padding: 30px; border-radius: 20px;
+            text-align: center; border: 1px solid #333; transform: scale(0.7); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .close-btn {
+            margin-top: 20px; padding: 10px 25px; background: white; color: black;
+            border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold;
+        }
+
+        /* LOGICA ZERO JS: Quando checkbox checado, mostra modal */
+        #modal-engine:checked ~ .modal-overlay { opacity: 1; pointer-events: auto; }
+        #modal-engine:checked ~ .modal-overlay .card { transform: scale(1); }
+
+        /* Animações e Sensores */
+        @keyframes pupil-autonomous {
+            0%, 100% { transform: translateZ(25px) translate(0, 0) scale(1); }
+            20% { transform: translateZ(25px) translate(15%, -12%) scale(1.1); }
+            50% { transform: translateZ(25px) translate(-10%, 15%) scale(0.9); }
+        }
+        @keyframes iris-sync {
+            0%, 100% { transform: translateZ(12px) translate(0, 0); }
+            20% { transform: translateZ(12px) translate(8%, -6%); }
+        }
+        @keyframes blink { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.01); } }
+
+        /* Rastreamento */
+        .eye-track-grid:hover ~ .eye-trigger .liquid-object span { animation: none !important; }
+        .sensor:nth-child(1):hover ~ .eye-trigger .liquid-object span:nth-child(2) { transform: translateZ(25px) translate(-28%, -28%); }
+        .sensor:nth-child(2):hover ~ .eye-trigger .liquid-object span:nth-child(2) { transform: translateZ(25px) translate(0%, -32%); }
+        .sensor:nth-child(3):hover ~ .eye-trigger .liquid-object span:nth-child(2) { transform: translateZ(25px) translate(28%, -28%); }
+        .sensor:nth-child(6):hover ~ .eye-trigger .liquid-object span:nth-child(2) { transform: translateZ(25px) translate(32%, 0%); }
+        .sensor:nth-child(4):hover ~ .eye-trigger .liquid-object span:nth-child(2) { transform: translateZ(25px) translate(-32%, 0%); }
+        .sensor:nth-child(8):hover ~ .eye-trigger .liquid-object span:nth-child(2) { transform: translateZ(25px) translate(0%, 32%); }
+    </style>
+</head>
+<body>
+
+    <input type="checkbox" id="modal-engine">
+
+    <div class="eye-track-grid">
+        <div class="sensor"></div><div class="sensor"></div><div class="sensor"></div>
+        <div class="sensor"></div><div class="sensor"></div><div class="sensor"></div>
+        <div class="sensor"></div><div class="sensor"></div><div class="sensor"></div>
+    </div>
+
+    <label for="modal-engine" class="eye-trigger">
+        <div class="liquid-object">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="liquid-object">
+            <span></span><span></span><span></span>
+        </div>
+    </label>
+
+    <div class="modal-overlay">
+        <div class="card">
+            <h2>Curiosidade Ativada</h2>
+            <p style="margin: 15px 0; color: #888;">Você clicou nos olhos MONO. Este modal funciona sem uma única linha de JavaScript.</p>
+            <label for="modal-engine" class="close-btn">FECHAR</label>
+        </div>
+    </div>
+
+</body>
+</html>
